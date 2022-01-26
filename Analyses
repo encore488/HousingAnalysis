@@ -1,0 +1,109 @@
+#Create housing list to store file
+housing <- read.csv(file="housing.csv", header=TRUE, sep=",")
+
+# Converting appropriate variables to factors  
+housing <- within(housing, {
+   view <- factor(view)
+   backyard <- factor(backyard)
+})
+# Create a subset for the variables I will Use
+myVars <- c("price", "sqft_living", "age", "appliance_age", "crime", "grade", "view", "bathrooms")
+housing_sub <- housing[myVars]
+# number of columns
+print("# of columns")
+ncol(housing_sub)
+
+# number of rows
+print("# of rows")
+nrow(housing_sub)
+
+# Scatterplots of Price vs living area and price vs age
+print("Scatterplots")
+plot(housing_sub$price, housing_sub$sqft_living, main="Scatterplot of price vs size", 
+     xlab="price", ylab="size", col="red", pch=19, frame=FALSE)
+plot(housing_sub$price, housing_sub$age, main="Scatterplot of price vs age", 
+     xlab="price", ylab="age", col="red", pch=19, frame=FALSE)
+#Create new subset to use in Correlation Matrix
+myVars1 <- c("price", "sqft_living", "age")
+housing_sub1 <- housing[myVars1]
+#Correlation Coefficients
+print("Correlation Coefficients")
+corr_matrix <- cor(housing_sub1, method="pearson")
+round(corr_matrix, 4)
+#Create a multiple regression model of price using size, grade, bathrooms, and view as predictors
+print("Create a multiple regression model of price using size, grade, bathrooms, and view as predictors")
+model1 <- lm(price ~ sqft_living + grade + bathrooms + view, data=housing)
+summary(model1)
+#Residuals vs fitted values for model1
+print("Residuals vs fitted values for model1")
+residuals <- residuals(model1)
+fitted_values <- fitted.values(model1)
+plot(fitted_values, residuals, main="Residuals vs Fitted", xlab="Fitted Values", ylab="Residuals", col="red", pch=19, frame=FALSE)
+# Q-Q plot for model1
+print("Q-Q plot for model1")
+qqnorm(residuals, pch=19, col="red", frame=FALSE)
+qqline(residuals, col="blue", lwd=2)
+
+# Create data for a 2150 sqft, 7 grade house on a lake with three bathrooms
+newData <- data.frame(sqft_living=2150, grade=7, bathrooms=3, view='2')
+# 90% prediction and confidence intervals 
+print("90% prediction interval ")
+predict_pred_int <- predict(model1, newData, interval="predict", level=0.90)
+round(predict_pred_int, 4)
+print("90% Confidence Interval")
+predict_conf_int <- predict(model1, newData, interval="confidence", level=0.90)
+round(predict_conf_int, 4)
+# Create Scatterplot of Price vs Appliance age and Price vs Crime
+plot(housing$price, housing$appliance_age, main="Scatterplot of price vs appliance age", 
+     xlab="price", ylab="appliance age", col="red", pch=19, frame=FALSE)
+plot(housing$price, housing$crime, main="Scatterplot of price vs crime rate", 
+     xlab="price", ylab="crime", col="red", pch=19, frame=FALSE)
+
+# Create Complete Second Order Model with price affected by crime rate and appliance age
+print("Complete Second Order Model with price affected by crime rate and appliance age")
+model2 <- lm(price ~ crime + appliance_age + crime:appliance_age + I(crime^2) + I(appliance_age^2), data=housing)
+summary(model2)
+
+# Fitted values
+print("Fitted values")
+fitted_values <-fitted.values(model2)
+#fitted_values
+# Residuals
+print("Residuals")
+residuals <- residuals(model2)
+#residuals
+# Plot residuals against fitted values
+plot(fitted_values, residuals, main="Residuals against fitted values", xlab="Fitted Values", ylab="Residuals",
+     col="red", pch=19, frame=FALSE)
+# Q-Q Plot
+print("Q-Q Plot of model2")
+qqnorm(residuals, pch=19, col="red", frame=FALSE)
+qqline(residuals, col="blue", lwd=2)
+
+# The predicted price for a home that has one-year-old appliances 
+# and is in an area that has a crime rate of 81.02 per 100,000 individuals at 90%
+newData <- data.frame(appliance_age=1, crime=81.02)
+print("90% prediction interval")
+predict_pred_int <- predict(model2, newData, interval="predict", level=0.90)
+round(predict_pred_int, 4)
+print("90% confidence interval")
+predict_conf_int <- predict(model2, newData, interval="confidence", level=0.90)
+round(predict_conf_int, 4)
+
+# The predicted price for a home that has 15-year-old appliances and is 
+# in an area that has a crime rate of 200.50 per 100,000 individuals
+newData <- data.frame(appliance_age=15, crime=200.5)
+print("90% prediction interval")
+predict_pred_int <- predict(model2, newData, interval="predict", level=0.90)
+round(predict_pred_int, 4)
+print("90% confidence interval")
+predict_conf_int <- predict(model2, newData, interval="confidence", level=0.90)
+round(predict_conf_int, 4)
+
+# Write the general form of a first order model for price using age of appliances and crime rate
+# per 100,000 people as predictors. Include the interaction term between age of appliances and crime rate.
+model3 <- lm(price ~ crime + appliance_age + crime:appliance_age, data=housing)
+summary(model3)
+
+# Perform the F-Test
+anova(model2, model3)
